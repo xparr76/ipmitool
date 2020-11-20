@@ -3,7 +3,7 @@ idrac fan control
 
 
 
-Start Script
+Run just the scrypt
 ```
 ipmitool.sh \
 	${IDRACIP} \
@@ -15,10 +15,12 @@ ipmitool.sh \
 	${DELAY}
 ```
 
-Start scrypt in docker
+Build docker image
 ```
 docker build -t "xparr76/ipmitool" .
 ```
+
+Run docker container
 ```
 docker run -d --name ipmitool \
 	-e IDRACIP=<ip> \
