@@ -42,14 +42,14 @@ TEMPTHRESHOLD=${4:-"40"}
 FANSPEEDMIN=${5:-"10"}
 FANSPEEDMAX=${6:-"60"}
 DELAY=${7:-"5"}
-SENSORNAME="Temp"
 
-echo "IP:" $IDRACIP
-echo "User:" $IDRACUSER
-echo "Tempthreshold" $TEMPTHRESHOLD
-echo "FanMax %:" $FANSPEEDMAX
-echo "FanMin %:" $FANSPEEDMIN
-echo "Interval: " $DELAY
+echo "IDRACIP:" $IDRACIP
+echo "IDRACUSER:" $IDRACUSER
+echo "IDRACPASSWORD:" "******"
+echo "TEMPTHRESHOLD:" $TEMPTHRESHOLD"c"
+echo "FANSPEEDMIN:" $FANSPEEDMIN"%"
+echo "FANSPEEDMAX:" $FANSPEEDMAX"%"
+echo "DELAY: " $DELAY
 
 int_handler()
 {
@@ -65,19 +65,35 @@ function logInfo() {
 	local TIME=$(date +%Y-%m-%d-%H:%M:%S)
 	local IP=$IDRACIP
 	local MSG=$1
-	echo "$TIME ip:${IP} fanspeed:${FANSPEED}% temp:${CURRENTTEMP}c last:${LASTTEMP}c ${MSG}" 2>&1 | tee -a /logs/ipmitool_$(date +%Y-%m-%d).log
+	echo "$TIME ip:${IP} fanspeed:${CURRENTFANSPEED}rpm temp:${CURRENTTEMP}c last:${LASTTEMP}c ${MSG}" 2>&1 | tee -a /logs/ipmitool_$(date +%Y-%m-%d).log
 }
 
 function getCpuTemp() {
-	local SENSORTEMPS=$(ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type temperature | grep $SENSORNAME | cut -d"|" -f5 | cut -d" " -f2)
+	local SENSORTEMPS=$(ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type temperature | grep Temp | cut -d"|" -f5 | cut -d" " -f2)
 	IFS=" " read -ra ARRAY <<< "${SENSORTEMPS//$'\n'/ }"
 	# ARRAY[0] = (Inlet Temp)
 	# ARRAY[1] = (Exhaust Temp)
 	# ARRAY[2] = (CPU 1 Temp)
 	# ARRAY[3] = (CPU 2 Temp)
-	
 	# set highest temp cpu to CURRENTTEMP
 	CURRENTTEMP=$(( ${ARRAY[2]} > ${ARRAY[3]} ? ${ARRAY[2]} : ${ARRAY[3]} ))
+}
+
+function getFanSpeed() {
+	local SENSORFANS=$(ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type fan | grep Fan | cut -d"|" -f5 | cut -d" " -f2)
+	IFS=" " read -ra FANARRAY <<< "${SENSORFANS//$'\n'/ }"
+	# FANARRAY[0] = (Fan1)
+	# FANARRAY[1] = (Fan2)
+	# FANARRAY[2] = (Fan3)
+	# FANARRAY[3] = (Fan4)
+	# FANARRAY[4] = (Fan5)
+	# FANARRAY[5] = (Fan6)
+	# set highest speed fan to CURRENTFANSPEED
+	CURRENTFANSPEED=$(( ${FANARRAY[0]} > ${FANARRAY[1]} ? ${FANARRAY[0]} : ${FANARRAY[1]} ))
+	CURRENTFANSPEED=$(( ${FANARRAY[1]} > ${FANARRAY[2]} ? ${FANARRAY[1]} : ${FANARRAY[2]} ))
+	CURRENTFANSPEED=$(( ${FANARRAY[2]} > ${FANARRAY[3]} ? ${FANARRAY[2]} : ${FANARRAY[3]} ))
+	CURRENTFANSPEED=$(( ${FANARRAY[3]} > ${FANARRAY[4]} ? ${FANARRAY[3]} : ${FANARRAY[4]} ))
+	CURRENTFANSPEED=$(( ${FANARRAY[4]} > ${FANARRAY[5]} ? ${FANARRAY[4]} : ${FANARRAY[5]} ))
 }
 
 function dynamicFanControl(){
@@ -113,6 +129,7 @@ while true
 do
 	# call ipmitool and return temps
 	getCpuTemp
+	getFanSpeed
 	
 	# set LASTTEMP and FANSPEED on first run
 	if [[ $LASTTEMP < 1 ]]; then 
@@ -139,6 +156,9 @@ do
 			logInfo "idle no change"
 		fi
 	else
+		LASTTEMP=$CURRENTTEMP
+		FANSPEED=$(($CURRENTTEMP-10))
+		
 		# enable dynamic fan control
 		logInfo "idle dynamic state"
 		dynamicFanControl "on"
