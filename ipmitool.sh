@@ -131,7 +131,7 @@ do
 			logInfo "speed up fan"
 			fanUp
 			
-		elif [[ $FANSPEED > $FANSPEEDMIN && $CURRENTTEMP < $LASTTEMP ]] || [[ $((1 + RANDOM % 10 )) = 5 ]]; then
+		elif [[ $FANSPEED > $FANSPEEDMIN && $CURRENTTEMP < $LASTTEMP ]]; then
 			logInfo "slow down fan"
 			fanDown
 			
