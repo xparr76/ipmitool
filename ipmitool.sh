@@ -14,26 +14,25 @@
 # ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type Temperature
 # ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr elist full
 # ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr get "Fan1"
-# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr list 
-# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type list 
+# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr list
+# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type list
 # ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type Temperature
 # ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type Fan
 # ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD sdr type "Power Supply"
 #
 ### Chassis commands:
 # ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis status
-# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis status ipmitool chassis identify []	# turn on front panel identify light (default 15s) 
-# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power soft 				# initiate a soft-shutdown via acpi 
-# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power cycle 				# issue a hard power off, wait 1s, power on 
-# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power off 				# issue a hard power off 
-# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power on 				# issue a hard power on 
+# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis status ipmitool chassis identify []	# turn on front panel identify light (default 15s)
+# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power soft 				# initiate a soft-shutdown via acpi
+# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power cycle 				# issue a hard power off, wait 1s, power on
+# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power off 				# issue a hard power off
+# ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power on 				# issue a hard power on
 # ipmitool -I lanplus -H $IDRACIP -U $IDRACUSER -P $IDRACPASSWORD chassis power reset 				# issue a hard reset
 #
 ### Modify boot device for the next reboot:
-# ipmitool chassis bootdev pxe 
-# ipmitool chassis bootdev cdrom 
+# ipmitool chassis bootdev pxe
+# ipmitool chassis bootdev cdrom
 # ipmitool chassis bootdev bios
-
 
 IDRACIP=${1:-""}
 IDRACUSER=${2:-""}
@@ -130,35 +129,35 @@ do
 	# call ipmitool and return temps
 	getCpuTemp
 	getFanSpeed
-	
+
 	# set LASTTEMP and FANSPEED on first run
-	if [[ $LASTTEMP < 1 ]]; then 
+	if [[ $LASTTEMP < 1 ]]; then
 		LASTTEMP=$CURRENTTEMP
 		FANSPEED=$(($CURRENTTEMP-10))
 		logInfo "Start"
 	fi
-	
-	# only control fan speed if highest cpu temp is higher then threshold 
+
+	# only control fan speed if highest cpu temp is higher then threshold
 	if [[ $CURRENTTEMP > $TEMPTHRESHOLD ]]; then
 		# disable dynamic fan control
 		dynamicFanControl "off"
-		
+
 		# Increase or decrease a fan speed to match cpu temp changes
 		if [[ $FANSPEED < $FANSPEEDMAX && $CURRENTTEMP > $LASTTEMP ]]; then
 			logInfo "speed up fan"
 			fanUp
-			
+
 		elif [[ $FANSPEED > $FANSPEEDMIN && $CURRENTTEMP < $LASTTEMP ]]; then
 			logInfo "slow down fan"
 			fanDown
-			
+
 		else
 			logInfo "idle no change"
 		fi
 	else
 		LASTTEMP=$CURRENTTEMP
 		FANSPEED=$(($CURRENTTEMP-10))
-		
+
 		# enable dynamic fan control
 		logInfo "idle dynamic state"
 		dynamicFanControl "on"
