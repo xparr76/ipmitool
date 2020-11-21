@@ -1,9 +1,8 @@
 # ipmitool
-idrac fan control
+iDRAC fan control
 
 
-
-Run just the scrypt
+Run just the script
 ```
 ipmitool.sh \
 	${IDRACIP} \
